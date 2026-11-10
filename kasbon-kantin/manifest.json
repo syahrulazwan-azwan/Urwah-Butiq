@@ -1,0 +1,15 @@
+{
+  "name": "Kasbon Kantin – Urwah Butiq",
+  "short_name": "Kasbon Kantin",
+  "description": "Catatan kasbon kantin Urwah Butiq · Twins Collection",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#F7F5FA",
+  "theme_color": "#4B1A92",
+  "lang": "id",
+  "icons": [
+    { "src": "assets/logo.png", "sizes": "192x192", "type": "image/png", "purpose": "any" }
+  ]
+}
