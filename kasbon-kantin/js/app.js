@@ -51,6 +51,8 @@
     del: function (k) { try { sessionStorage.removeItem(k); } catch (e) { /* abaikan */ } }
   };
 
+  function kelasBody(nama, aktif) { document.body.classList.toggle(nama, !!aktif); }
+
   var IKON = {
     cek: '<svg aria-hidden="true" width="66" height="66" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"></path></svg>',
     jam: '<svg aria-hidden="true" width="62" height="62" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>',
@@ -246,6 +248,8 @@
     $('tanggalLabel').textContent = tglPanjang(S.tanggal);
     $('btnTanggal').classList.toggle('lain', S.tanggal !== hariIni());
     $('btnTanggal').hidden = S.view !== 'kasir';
+    $('hpTgl').textContent = S.tanggal === hariIni() ? 'Hari ini' : tglSedang(S.tanggal).replace(/ \d{4}$/, '');
+    $('hpTglBtn').classList.toggle('lain', S.tanggal !== hariIni());
     Array.prototype.forEach.call(document.querySelectorAll('.navbtn'), function (b) {
       b.classList.toggle('active', b.getAttribute('data-view') === S.view);
       if (b.getAttribute('data-view') === S.view) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
@@ -335,6 +339,13 @@
     if (!items.length) html = '<p class="empty">Belum ada barang.<br>Ketuk barang di tengah.</p>';
     $('keranjang').innerHTML = html;
     $('totalLabel').textContent = rp(total);
+    var jml = items.reduce(function (a, i) { return a + i.qty; }, 0);
+    $('hpNama').textContent = S.nama || 'Pilih nama';
+    $('hpNamaBtn').classList.toggle('kosong', !S.nama);
+    $('hpRingkasNama').textContent = S.nama || 'Belum pilih nama';
+    $('hpRingkasJml').textContent = jml ? jml + ' barang · ketuk untuk lihat' : 'Belum ada barang';
+    $('hpTotal').textContent = rp(total);
+    $('hpRingkasBtn').setAttribute('aria-expanded', document.body.classList.contains('keranjang-buka') ? 'true' : 'false');
     var nd = $('namaDipilih');
     nd.textContent = S.nama || 'Belum dipilih';
     nd.classList.toggle('kosong', !S.nama);
@@ -417,6 +428,7 @@
     var snap = { payload: payload, cart: S.cart, nama: S.nama, lokal: simpanOutbox() !== false, sync: 'kirim', error: '' };
     S.last = snap;
     S.cart = {};
+    kelasBody('keranjang-buka', false);
     renderGrid(); renderKeranjang(); renderStatus();
     if (snap.lokal) mulaiHitungMundur(snap);
     tampilTerkirim();
@@ -640,6 +652,7 @@
     S.nama = n;
     S.cari = '';
     $('cariNama').value = '';
+    kelasBody('nama-buka', false);
     tutupModal();
     renderNama(); renderKeranjang();
     var el = document.querySelector('.nama-btn.on');
@@ -767,6 +780,7 @@
 
   function renderRekap() {
     var R = S.rekap;
+    $('view-rekap').classList.remove('detail-open');
     var h = hitungRekap();
     var kiri = '<section class="panel">' +
       '<div class="bulan-nav"><button type="button" class="icon-btn" data-act="bulan" data-n="-1" aria-label="Bulan sebelumnya">' + IKON.kiri + '</button>' +
@@ -803,6 +817,7 @@
     if (!p) {
       kanan += '<p class="empty">' + (h.orang.length ? 'Pilih nama di sebelah kiri untuk melihat rinciannya.' : 'Belum ada catatan di ' + esc(bulanLabel(R.bulan)) + '.') + '</p>';
     } else {
+      kanan += '<button type="button" class="btn sm mobile-only" data-act="tutupOrang" style="align-self:flex-start">' + IKON.kiri + 'Semua nama</button>';
       kanan += '<div class="detail-head"><div><div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><h2>' + esc(p.nama) + '</h2>' +
         '<span class="pill ' + (p.lunas ? 'lunas">Lunas' + (p.tanggalLunas ? ' · ' + esc(tglPendek(p.tanggalLunas)) : '') : 'belum">Belum lunas') + '</span></div>' +
         '<span class="muted" style="font-size:15px">' + Object.keys(p.hari).length + ' hari mengambil · ' + p.baris.length + ' catatan · ' + p.item + ' barang</span></div>' +
@@ -823,17 +838,18 @@
     }
     kanan += '</section>';
     $('view-rekap').innerHTML = kiri + kanan;
+    $('view-rekap').classList.toggle('detail-open', !!(R.buka && p));
   }
 
   function tabelTanggal(p) {
     var prev = '';
-    return '<table class="tbl"><thead><tr><th>Tanggal</th><th>Menu</th><th class="r">Jumlah</th><th class="r">Harga satuan</th><th class="r">Harga</th></tr></thead><tbody>' +
+    return '<table class="tbl"><thead><tr><th>Tanggal</th><th>Menu</th><th class="r">Jumlah</th><th class="r hs">Harga satuan</th><th class="r">Harga</th></tr></thead><tbody>' +
       p.baris.map(function (b) {
         var awal = b.tanggal !== prev;
         var cls = awal && prev ? ' class="grp"' : '';
         prev = b.tanggal;
         return '<tr' + cls + '><td class="tgl">' + (awal ? esc(tglPendek(b.tanggal)) : '') + '</td><td class="b">' + esc(b.barang) + '</td><td class="r">' + b.qty +
-          '</td><td class="r muted">' + angka(b.harga) + '</td><td class="r b">' + angka(b.subtotal) + '</td></tr>';
+          '</td><td class="r muted hs">' + angka(b.harga) + '</td><td class="r b">' + angka(b.subtotal) + '</td></tr>';
       }).join('') + '</tbody></table>';
   }
 
@@ -850,10 +866,10 @@
   function tabelBarang(p) {
     var list = perBarang(p);
     var max = list.length ? list[0].total : 1;
-    return '<table class="tbl"><thead><tr><th>Barang</th><th class="r">Jumlah</th><th class="r">Harga satuan</th><th class="r">Total</th><th></th></tr></thead><tbody>' +
+    return '<table class="tbl"><thead><tr><th>Barang</th><th class="r">Jumlah</th><th class="r hs">Harga satuan</th><th class="r">Total</th><th class="barcol"></th></tr></thead><tbody>' +
       list.map(function (a) {
-        return '<tr><td class="b">' + esc(a.barang) + '</td><td class="r">' + a.qty + '</td><td class="r muted">' + angka(a.harga) + '</td><td class="r b">' + angka(a.total) +
-          '</td><td style="width:200px"><div class="bar"><i style="width:' + Math.max(3, Math.round(a.total / max * 100)) + '%"></i></div></td></tr>';
+        return '<tr><td class="b">' + esc(a.barang) + '</td><td class="r">' + a.qty + '</td><td class="r muted hs">' + angka(a.harga) + '</td><td class="r b">' + angka(a.total) +
+          '</td><td class="barcol" style="width:200px"><div class="bar"><i style="width:' + Math.max(3, Math.round(a.total / max * 100)) + '%"></i></div></td></tr>';
       }).join('') + '</tbody></table>';
   }
 
@@ -1112,6 +1128,7 @@
     var s = S.admin.section;
     if (!S.admin.form || S.admin.form._s !== s) S.admin.form = formKosong(s);
     if (s === 'pengaturan') {
+      v.classList.remove('form-open');
       v.innerHTML = adminNav() + panelPengaturan();
       v.style.gridTemplateColumns = '190px minmax(0, 1fr)';
       return;
@@ -1131,11 +1148,18 @@
         '<input id="admCari" type="search" placeholder="Cari nama…" aria-label="Cari nama" value="' + esc(S.admin.cari) + '"></label>';
     }
     v.innerHTML = adminNav() +
-      '<section class="panel"><div class="step-row"><h2>' + judul + '</h2><span class="muted" id="admCount"></span></div>' + filterHtml +
+      '<section class="panel"><div class="step-row"><h2>' + judul + '</h2><span class="muted" id="admCount"></span>' +
+      '<button type="button" class="btn sm primary mobile-only" data-act="admTambah">+ Tambah</button></div>' + filterHtml +
       '<div class="list-box" id="admList"></div></section>' +
       '<section class="panel" id="admForm"></section>';
     renderAdmList();
     renderAdmForm();
+    aturFormBuka();
+  }
+
+  /** Di HP, formulir admin tampil sebagai layar tersendiri. */
+  function aturFormBuka() {
+    $('view-admin').classList.toggle('form-open', !!S.admin.formBuka && S.admin.section !== 'pengaturan');
   }
 
   function formKosong(s) {
@@ -1152,12 +1176,12 @@
         return (S.admin.kat === 'Semua' || b.kategori === S.admin.kat) && (!q || b.nama.toLowerCase().indexOf(q) >= 0);
       });
       n = list.length;
-      html = '<div class="adm-row head"><span></span><span>NAMA</span><span>KATEGORI</span><span style="text-align:right">HARGA</span><span style="text-align:center">DIJUAL</span><span></span></div>' +
+      html = '<div class="adm-row head"><span></span><span>NAMA</span><span class="c-kat">KATEGORI</span><span style="text-align:right">HARGA</span><span style="text-align:center">DIJUAL</span><span></span></div>' +
         list.map(function (b) {
           var fb = fotoBarang(b);
           var th = fotoAman(fb) ? '<img class="th" src="' + esc(fb) + '" alt="">' : '<span class="th">' + esc(inisial(b.nama)) + '</span>';
           return '<div class="adm-row' + (b.aktif ? '' : ' off') + (f.id === b.id ? ' sel' : '') + '">' + th + '<span class="nm">' + esc(b.nama) + '</span>' +
-            '<span class="muted">' + esc(b.kategori) + '</span><span class="hg">' + angka(b.harga) + '</span>' +
+            '<span class="muted c-kat">' + esc(b.kategori) + '</span><span class="hg">' + angka(b.harga) + '</span>' +
             '<button type="button" class="toggle' + (b.aktif ? ' on' : '') + '" data-act="admToggleBarang" data-id="' + esc(b.id) + '" aria-pressed="' + b.aktif + '" aria-label="' + (b.aktif ? 'Berhenti jual ' : 'Jual lagi ') + esc(b.nama) + '"><span><i></i></span></button>' +
             '<button type="button" class="btn sm" data-act="admEditBarang" data-id="' + esc(b.id) + '" style="color:var(--p)">Ubah</button></div>';
         }).join('');
@@ -1166,9 +1190,9 @@
       var hit = {};
       S.master.barang.forEach(function (b) { hit[b.kategori] = (hit[b.kategori] || 0) + 1; });
       n = S.master.kategori.length;
-      html = '<div class="adm-row2 head"><span>KATEGORI</span><span>JUMLAH BARANG</span><span style="text-align:center">TAMPIL</span><span></span></div>' +
+      html = '<div class="adm-row2 head"><span>KATEGORI</span><span class="c2">JUMLAH BARANG</span><span style="text-align:center">TAMPIL</span><span></span></div>' +
         S.master.kategori.map(function (k) {
-          return '<div class="adm-row2' + (k.aktif ? '' : ' off') + (f.namaLama === k.nama ? ' sel' : '') + '"><span class="nm">' + esc(k.nama) + '</span><span class="muted">' + (hit[k.nama] || 0) + ' barang</span>' +
+          return '<div class="adm-row2' + (k.aktif ? '' : ' off') + (f.namaLama === k.nama ? ' sel' : '') + '"><span class="nm">' + esc(k.nama) + '</span><span class="muted c2">' + (hit[k.nama] || 0) + ' barang</span>' +
             '<button type="button" class="toggle' + (k.aktif ? ' on' : '') + '" data-act="admToggleKategori" data-k="' + esc(k.nama) + '" aria-pressed="' + k.aktif + '" aria-label="Tampilkan ' + esc(k.nama) + '"><span><i></i></span></button>' +
             '<button type="button" class="btn sm" data-act="admEditKategori" data-k="' + esc(k.nama) + '" style="color:var(--p)">Ubah</button></div>';
         }).join('');
@@ -1177,10 +1201,10 @@
       var names = S.admin.data.nama.filter(function (x) { return !q || x.nama.toLowerCase().indexOf(q) >= 0; })
         .sort(function (a, b) { return urutNama(a.nama, b.nama); });
       n = names.length;
-      html = '<div class="adm-row2 head"><span>NAMA</span><span>NO WA WALI</span><span style="text-align:center">TAMPIL</span><span></span></div>' +
+      html = '<div class="adm-row2 head"><span>NAMA</span><span class="c2">NO WA WALI</span><span style="text-align:center">TAMPIL</span><span></span></div>' +
         names.map(function (x) {
           return '<div class="adm-row2' + (x.aktif ? '' : ' off') + (f.namaLama === x.nama ? ' sel' : '') + '"><span class="nm">' + esc(x.nama) + (x.ket ? '<small>' + esc(x.ket) + '</small>' : '') + '</span>' +
-            '<span class="' + (x.wa ? '' : 'muted') + '">' + esc(x.wa || '—') + '</span>' +
+            '<span class="c2' + (x.wa ? '' : ' muted') + '">' + esc(x.wa || '—') + '</span>' +
             '<button type="button" class="toggle' + (x.aktif ? ' on' : '') + '" data-act="admToggleNama" data-n="' + esc(x.nama) + '" aria-pressed="' + x.aktif + '" aria-label="Tampilkan ' + esc(x.nama) + ' di kasir"><span><i></i></span></button>' +
             '<button type="button" class="btn sm" data-act="admEditNama" data-n="' + esc(x.nama) + '" style="color:var(--p)">Ubah</button></div>';
         }).join('');
@@ -1225,7 +1249,7 @@
         '<div class="form-actions"><button type="button" class="btn" data-act="admBatalForm">' + (f.namaLama ? 'Batal' : 'Kosongkan') + '</button>' +
         '<button type="button" class="btn primary grow" data-act="admSimpan">' + (f.namaLama ? 'Simpan perubahan' : 'Tambah nama') + '</button></div>';
     }
-    $('admForm').innerHTML = html;
+    $('admForm').innerHTML = '<button type="button" class="btn sm mobile-only" data-act="admTutupForm" style="align-self:flex-start">' + IKON.kiri + 'Kembali ke daftar</button>' + html;
   }
 
   function panelPengaturan() {
@@ -1234,7 +1258,7 @@
       '<div class="field"><label for="psToko">Nama toko</label><input id="psToko" class="input" value="' + esc(p.toko) + '"></div>' +
       '<div class="field"><label for="psSub">Tulisan di bawah nama toko</label><input id="psSub" class="input" value="' + esc(p.subjudul) + '"></div>' +
       '<div class="field"><label for="psPesan">Kalimat penutup pesan WA &amp; PDF</label><textarea id="psPesan" class="input">' + esc(p.pesanPenutup) + '</textarea></div>' +
-      '<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">' +
+      '<div class="grid2">' +
       '<div class="field"><label for="psPin">PIN admin baru (kosongkan jika tidak diganti)</label><input id="psPin" class="input" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></div>' +
       '<div class="field"><label for="psPin2">Ulangi PIN baru</label><input id="psPin2" class="input" type="password" inputmode="numeric" maxlength="6" autocomplete="new-password"></div></div>' +
       '<div class="form-actions" style="margin-top:8px"><span></span><button type="button" class="btn primary grow" data-act="simpanPengaturan">Simpan pengaturan</button></div></section>';
@@ -1296,6 +1320,8 @@
       toast(s === 'barang' ? data.nama + ' tersimpan. Langsung muncul di kasir.' : 'Tersimpan.');
       if (s === 'nama' && data.namaLama && data.namaLama !== data.nama && S.nama === data.namaLama) S.nama = data.nama;
       S.admin.form = formKosong(s);
+      S.admin.formBuka = false;
+      aturFormBuka();
       return muatAdmin();
     }, function (e) {
       if (pinDitolak(e)) return;
@@ -1326,7 +1352,17 @@
   /* ---------------- Aksi (klik) ---------------- */
   var AKSI = {
     nav: function (el) { gantiView(el.getAttribute('data-view')); },
-    pilihNama: function (el) { S.nama = el.getAttribute('data-nama'); renderNama(); renderKeranjang(); },
+    pilihNama: function (el) { S.nama = el.getAttribute('data-nama'); kelasBody('nama-buka', false); renderNama(); renderKeranjang(); },
+    bukaNama: function () {
+      kelasBody('keranjang-buka', false);
+      kelasBody('nama-buka', true);
+      setTimeout(function () { var el = document.querySelector('.nama-btn.on'); if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' }); }, 30);
+    },
+    tutupNama: function () { kelasBody('nama-buka', false); },
+    toggleKeranjang: function () { kelasBody('keranjang-buka', !document.body.classList.contains('keranjang-buka')); renderKeranjang(); },
+    tutupOrang: function () { S.rekap.buka = false; renderRekap(); },
+    admTambah: function () { S.admin.form = formKosong(S.admin.section); S.admin.formBuka = true; renderAdmList(); renderAdmForm(); aturFormBuka(); },
+    admTutupForm: function () { S.admin.formBuka = false; aturFormBuka(); },
     tab: function (el) { S.tab = el.getAttribute('data-tab'); renderTabs(); renderGrid(); $('gridBarang').scrollTop = 0; },
     tambah: function (el) { var id = el.getAttribute('data-id'); aturQty(id, (S.cart[id] || 0) + 1); },
     kurang: function (el) { var id = el.getAttribute('data-id'); aturQty(id, (S.cart[id] || 0) - 1); },
@@ -1342,10 +1378,10 @@
     pilihTanggal: pilihTanggal,
     tanggalHariIni: function () { S.tanggal = hariIni(); S.tanggalManual = false; renderHeader(); renderKeranjang(); },
     kirimUlang: function () { flushOutbox(true); },
-    bulan: function (el) { S.rekap.bulan = geserBulan(S.rekap.bulan, +el.getAttribute('data-n')); S.rekap.sel = ''; muatRekap(); },
+    bulan: function (el) { S.rekap.bulan = geserBulan(S.rekap.bulan, +el.getAttribute('data-n')); S.rekap.sel = ''; S.rekap.buka = false; muatRekap(); },
     muatRekap: muatRekap,
     filterRekap: function (el) { S.rekap.filter = el.getAttribute('data-f'); renderRekap(); },
-    pilihOrang: function (el) { S.rekap.sel = el.getAttribute('data-nama'); renderRekap(); },
+    pilihOrang: function (el) { S.rekap.sel = el.getAttribute('data-nama'); S.rekap.buka = true; renderRekap(); },
     modeRekap: function (el) { S.rekap.mode = el.getAttribute('data-m'); renderRekap(); },
     waTeks: waTeks,
     salinTeks: salinTeks,
@@ -1354,28 +1390,31 @@
     cetakOrang: cetakOrang,
     toggleLunas: toggleLunas,
     muatAdmin: muatAdmin,
-    admSection: function (el) { S.admin.section = el.getAttribute('data-s'); S.admin.cari = ''; S.admin.form = null; renderAdmin(); },
+    admSection: function (el) { S.admin.section = el.getAttribute('data-s'); S.admin.cari = ''; S.admin.form = null; S.admin.formBuka = false; renderAdmin(); },
     keluarAdmin: function () { S.pin = ''; sesi.del('kb_pin'); gantiView('kasir'); toast('Menu admin sudah dikunci.'); },
     admKat: function (el) { S.admin.kat = el.getAttribute('data-k'); renderAdmin(); },
     admEditBarang: function (el) {
       var b = barangById(el.getAttribute('data-id'));
       if (!b) return;
       S.admin.form = { _s: 'barang', id: b.id, nama: b.nama, kategori: b.kategori, harga: b.harga, aktif: b.aktif, foto: fotoBarang(b), fotoBerubah: false };
-      renderAdmList(); renderAdmForm();
+      S.admin.formBuka = true;
+      renderAdmList(); renderAdmForm(); aturFormBuka();
     },
     admEditKategori: function (el) {
       var k = S.master.kategori.filter(function (x) { return x.nama === el.getAttribute('data-k'); })[0];
       if (!k) return;
       S.admin.form = { _s: 'kategori', namaLama: k.nama, nama: k.nama, aktif: k.aktif };
-      renderAdmList(); renderAdmForm();
+      S.admin.formBuka = true;
+      renderAdmList(); renderAdmForm(); aturFormBuka();
     },
     admEditNama: function (el) {
       var x = S.admin.data.nama.filter(function (n) { return n.nama === el.getAttribute('data-n'); })[0];
       if (!x) return;
       S.admin.form = { _s: 'nama', namaLama: x.nama, nama: x.nama, ket: x.ket, wa: x.wa, aktif: x.aktif };
-      renderAdmList(); renderAdmForm();
+      S.admin.formBuka = true;
+      renderAdmList(); renderAdmForm(); aturFormBuka();
     },
-    admBatalForm: function () { S.admin.form = formKosong(S.admin.section); renderAdmList(); renderAdmForm(); },
+    admBatalForm: function () { S.admin.form = formKosong(S.admin.section); S.admin.formBuka = false; renderAdmList(); renderAdmForm(); aturFormBuka(); },
     admSimpan: admSimpan,
     fbKat: function (el) { S.admin.form.kategori = el.getAttribute('data-k'); renderAdmForm(); },
     fToggleAktif: function (el) { S.admin.form.aktif = !S.admin.form.aktif; el.classList.toggle('on', S.admin.form.aktif); el.setAttribute('aria-pressed', S.admin.form.aktif); },
@@ -1445,7 +1484,11 @@
   });
 
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && modalAktif() && !S.last) tutupModal();
+    if (e.key !== 'Escape') return;
+    if (modalAktif()) { if (!S.last) tutupModal(); return; }
+    kelasBody('nama-buka', false);
+    kelasBody('keranjang-buka', false);
+    if (S.admin.formBuka) { S.admin.formBuka = false; aturFormBuka(); }
   });
 
   window.addEventListener('online', function () { setOnline(true); flushOutbox(); });

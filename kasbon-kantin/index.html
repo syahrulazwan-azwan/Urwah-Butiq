@@ -52,7 +52,22 @@
   <!-- ================= KASIR ================= -->
   <main id="view-kasir" class="view kasir">
     <section class="panel">
-      <div class="step"><span class="num">1</span><h2>Pilih nama</h2></div>
+      <!-- Khusus HP: ringkasan nama & tanggal -->
+      <div class="hp-bar mobile-only">
+        <button type="button" class="hp-nama" id="hpNamaBtn" data-act="bukaNama">
+          <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 20c1.5-4 4.5-6 8-6s6.5 2 8 6"></path></svg>
+          <span id="hpNama">Pilih nama</span>
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"></path></svg>
+        </button>
+        <button type="button" class="hp-tgl" id="hpTglBtn" data-act="pilihTanggal">
+          <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M3 10h18M8 3v4M16 3v4"></path></svg>
+          <span id="hpTgl"></span>
+        </button>
+      </div>
+      <div class="step-row">
+        <div class="step"><span class="num">1</span><h2>Pilih nama</h2></div>
+        <button type="button" class="btn-ghost mobile-only" data-act="tutupNama">Tutup</button>
+      </div>
       <label class="search">
         <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="M20 20l-3.5-3.5"></path></svg>
         <input id="cariNama" type="search" placeholder="Cari nama…" aria-label="Cari nama" autocomplete="off">
@@ -72,7 +87,12 @@
       <div id="gridBarang" class="grid-barang"></div>
     </section>
 
-    <section class="panel">
+    <section class="panel panel-kirim">
+      <!-- Khusus HP: ringkasan keranjang, ketuk untuk membuka -->
+      <button type="button" class="hp-ringkas mobile-only" data-act="toggleKeranjang" aria-expanded="false" id="hpRingkasBtn">
+        <span class="l"><b id="hpRingkasNama">Belum pilih nama</b><small id="hpRingkasJml">0 barang</small></span>
+        <span class="r"><b id="hpTotal">Rp 0</b><svg class="chev" aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 15l6-6 6 6"></path></svg></span>
+      </button>
       <div class="step-row">
         <div class="step"><span class="num">3</span><h2>Periksa, lalu kirim</h2></div>
         <button type="button" class="btn-ghost" data-act="riwayat">Riwayat</button>

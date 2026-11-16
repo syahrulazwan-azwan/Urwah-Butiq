@@ -3,7 +3,7 @@
  * walau internet putus. Data kasbon TIDAK lewat sini (dikirim ke Apps Script).
  * Naikkan angka VERSI setiap kali file aplikasi diubah.
  */
-var VERSI = 'kasbon-v1';
+var VERSI = 'kasbon-v2';
 var FILE = [
   './',
   './index.html',
